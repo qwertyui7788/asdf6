@@ -2,9 +2,9 @@ import streamlit as st
 import random
 import time
 
-# --------------------------------------------------
-# 기본 설정
-# --------------------------------------------------
+# ==================================================
+# 페이지 설정
+# ==================================================
 
 st.set_page_config(
     page_title="Typing Master",
@@ -12,9 +12,9 @@ st.set_page_config(
     layout="centered"
 )
 
-# --------------------------------------------------
+# ==================================================
 # 문장 데이터
-# --------------------------------------------------
+# ==================================================
 
 TEXTS = {
     "쉬움": [
@@ -51,49 +51,35 @@ TEXTS = {
     ]
 }
 
-# --------------------------------------------------
+# ==================================================
 # 세션 상태 초기화
-# --------------------------------------------------
+# ==================================================
 
-if "game_started" not in st.session_state:
-    st.session_state.game_started = False
+defaults = {
+    "game_started": False,
+    "game_finished": False,
+    "start_time": None,
+    "target_text": "",
+    "typed_text": "",
+    "score": 0,
+    "best_score": 0,
+    "combo": 0,
+    "max_combo": 0,
+    "correct_chars": 0,
+    "total_chars": 0,
+    "input_key": 0
+}
 
-if "game_finished" not in st.session_state:
-    st.session_state.game_finished = False
+for key, value in defaults.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
-if "start_time" not in st.session_state:
-    st.session_state.start_time = None
 
-if "target_text" not in st.session_state:
-    st.session_state.target_text = ""
-
-if "typed_text" not in st.session_state:
-    st.session_state.typed_text = ""
-
-if "score" not in st.session_state:
-    st.session_state.score = 0
-
-if "best_score" not in st.session_state:
-    st.session_state.best_score = 0
-
-if "combo" not in st.session_state:
-    st.session_state.combo = 0
-
-if "max_combo" not in st.session_state:
-    st.session_state.max_combo = 0
-
-if "correct_chars" not in st.session_state:
-    st.session_state.correct_chars = 0
-
-if "total_chars" not in st.session_state:
-    st.session_state.total_chars = 0
-
-# --------------------------------------------------
-# 함수
-# --------------------------------------------------
+# ==================================================
+# 게임 시작
+# ==================================================
 
 def start_game(difficulty):
-    """게임 시작"""
 
     st.session_state.game_started = True
     st.session_state.game_finished = False
@@ -103,17 +89,25 @@ def start_game(difficulty):
     )
 
     st.session_state.typed_text = ""
+
     st.session_state.score = 0
     st.session_state.combo = 0
     st.session_state.max_combo = 0
+
     st.session_state.correct_chars = 0
     st.session_state.total_chars = 0
 
     st.session_state.start_time = time.time()
 
+    # 입력창 초기화
+    st.session_state.input_key += 1
+
+
+# ==================================================
+# 게임 종료
+# ==================================================
 
 def finish_game():
-    """게임 종료"""
 
     st.session_state.game_finished = True
     st.session_state.game_started = False
@@ -122,8 +116,11 @@ def finish_game():
         st.session_state.best_score = st.session_state.score
 
 
+# ==================================================
+# 정확도 계산
+# ==================================================
+
 def calculate_accuracy():
-    """정확도 계산"""
 
     total = st.session_state.total_chars
 
@@ -135,8 +132,11 @@ def calculate_accuracy():
     ) * 100
 
 
+# ==================================================
+# WPM 계산
+# ==================================================
+
 def calculate_wpm():
-    """WPM 계산"""
 
     if st.session_state.start_time is None:
         return 0
@@ -146,39 +146,43 @@ def calculate_wpm():
         1
     )
 
-    # 영어 타이핑 기준:
-    # 5 characters = 1 word
     words = st.session_state.correct_chars / 5
-
     minutes = elapsed / 60
 
     return round(words / minutes)
 
 
+# ==================================================
+# 입력 검사
+# ==================================================
+
 def check_typing(user_text, target_text):
-    """
-    현재 입력을 기준으로
-    정확한 글자 수와 콤보 계산
-    """
 
     correct = 0
 
     for i in range(
         min(len(user_text), len(target_text))
     ):
+
         if user_text[i] == target_text[i]:
             correct += 1
 
     st.session_state.correct_chars = correct
     st.session_state.total_chars = len(user_text)
 
-    # 콤보 계산
+    # ----------------------------------------------
+    # 콤보
+    # ----------------------------------------------
+
     if (
         len(user_text) > 0
         and user_text == target_text[:len(user_text)]
     ):
+
         st.session_state.combo = len(user_text)
+
     else:
+
         st.session_state.combo = 0
 
     st.session_state.max_combo = max(
@@ -186,7 +190,10 @@ def check_typing(user_text, target_text):
         st.session_state.combo
     )
 
-    # 점수 계산
+    # ----------------------------------------------
+    # 점수
+    # ----------------------------------------------
+
     accuracy = calculate_accuracy()
 
     st.session_state.score = int(
@@ -195,9 +202,10 @@ def check_typing(user_text, target_text):
         + accuracy
     )
 
-# --------------------------------------------------
+
+# ==================================================
 # 제목
-# --------------------------------------------------
+# ==================================================
 
 st.title("⌨️ Typing Master")
 
@@ -205,9 +213,9 @@ st.write(
     "주어진 문장을 최대한 빠르고 정확하게 입력하세요!"
 )
 
-# --------------------------------------------------
+# ==================================================
 # 사이드바
-# --------------------------------------------------
+# ==================================================
 
 with st.sidebar:
 
@@ -235,14 +243,15 @@ with st.sidebar:
         st.session_state.best_score
     )
 
-# --------------------------------------------------
+
+# ==================================================
 # 게임 시작 전
-# --------------------------------------------------
+# ==================================================
 
 if not st.session_state.game_started:
 
     st.info(
-        f"난이도: **{difficulty}** | "
+        f"난이도: **{difficulty}**  |  "
         f"제한시간: **{game_time}초**"
     )
 
@@ -251,48 +260,71 @@ if not st.session_state.game_started:
         type="primary",
         use_container_width=True
     ):
+
         start_game(difficulty)
+
         st.rerun()
 
-# --------------------------------------------------
+
+# ==================================================
 # 게임 진행
-# --------------------------------------------------
+# ==================================================
 
 if st.session_state.game_started:
 
-    elapsed = time.time() - st.session_state.start_time
+    # ----------------------------------------------
+    # 남은 시간
+    # ----------------------------------------------
+
+    elapsed = (
+        time.time()
+        - st.session_state.start_time
+    )
+
     remaining = max(
         0,
         game_time - int(elapsed)
     )
 
+    # ----------------------------------------------
     # 시간 종료
+    # ----------------------------------------------
+
     if remaining <= 0:
+
         finish_game()
+
         st.rerun()
 
-    # 상단 정보
+    # ----------------------------------------------
+    # 게임 정보
+    # ----------------------------------------------
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
+
         st.metric(
-            "⏱️ 남은 시간",
+            "⏱️ 시간",
             f"{remaining}초"
         )
 
     with col2:
+
         st.metric(
             "🎯 점수",
             st.session_state.score
         )
 
     with col3:
+
         st.metric(
             "🔥 콤보",
             st.session_state.combo
         )
 
     with col4:
+
         st.metric(
             "⚡ WPM",
             calculate_wpm()
@@ -300,7 +332,10 @@ if st.session_state.game_started:
 
     st.divider()
 
-    # 출제 문장
+    # ----------------------------------------------
+    # 문제
+    # ----------------------------------------------
+
     st.subheader("⌨️ 다음 문장을 입력하세요")
 
     st.code(
@@ -308,40 +343,92 @@ if st.session_state.game_started:
         language=None
     )
 
+    # ----------------------------------------------
     # 입력창
+    #
+    # input_key가 바뀔 때마다
+    # 새로운 입력창이 생성됨
+    # ----------------------------------------------
+
+    input_key = f"typing_input_{st.session_state.input_key}"
+
     typed = st.text_input(
         "입력",
-        value=st.session_state.typed_text,
-        key="typing_input",
+        key=input_key,
         label_visibility="collapsed",
-        placeholder="위 문장을 그대로 입력하세요..."
+        placeholder="위 문장을 입력하세요..."
     )
 
-    # 입력 처리
-    if typed != st.session_state.typed_text:
+    # 현재 입력 저장
+    st.session_state.typed_text = typed
 
-        st.session_state.typed_text = typed
+    # ----------------------------------------------
+    # 입력 검사
+    # ----------------------------------------------
+
+    if typed:
 
         check_typing(
             typed,
             st.session_state.target_text
         )
 
-        # 문장을 정확하게 완성
+        # ------------------------------------------
+        # 정답!
+        # ------------------------------------------
+
         if typed == st.session_state.target_text:
 
+            # 정답 보너스
             st.session_state.score += 100
+
+            # 콤보 증가
+            st.session_state.combo += 1
+
+            st.session_state.max_combo = max(
+                st.session_state.max_combo,
+                st.session_state.combo
+            )
+
+            # --------------------------------------
+            # 다음 문제
+            # --------------------------------------
 
             st.session_state.target_text = random.choice(
                 TEXTS[difficulty]
             )
 
+            # 입력값 초기화
             st.session_state.typed_text = ""
 
-            # Streamlit 입력창 초기화를 위해 rerun
+            # 입력창을 새로 생성
+            st.session_state.input_key += 1
+
+            # 화면 새로고침
             st.rerun()
 
+        # ------------------------------------------
+        # 오타 검사
+        # ------------------------------------------
+
+        if st.session_state.target_text.startswith(
+            typed
+        ):
+
+            st.success(
+                "✅ 지금까지 정확합니다!"
+            )
+
+        else:
+
+            st.error(
+                "❌ 오타가 있습니다!"
+            )
+
+    # ----------------------------------------------
     # 정확도
+    # ----------------------------------------------
+
     accuracy = calculate_accuracy()
 
     st.progress(
@@ -349,37 +436,34 @@ if st.session_state.game_started:
     )
 
     st.caption(
-        f"정확도: **{accuracy:.1f}%**"
+        f"🎯 정확도: **{accuracy:.1f}%**"
     )
 
-    # 현재 입력 상태
-    if typed:
-
-        if st.session_state.target_text.startswith(
-            typed
-        ):
-            st.success("✅ 지금까지 정확합니다!")
-
-        else:
-            st.error(
-                "❌ 오타가 있습니다. 다시 확인하세요."
-            )
-
+    # ----------------------------------------------
     # 종료 버튼
+    # ----------------------------------------------
+
     if st.button(
         "🛑 게임 종료",
         use_container_width=True
     ):
+
         finish_game()
+
         st.rerun()
 
-    # 자동 새로고침
+    # ----------------------------------------------
+    # 1초마다 화면 갱신
+    # ----------------------------------------------
+
     time.sleep(1)
+
     st.rerun()
 
-# --------------------------------------------------
+
+# ==================================================
 # 게임 종료 화면
-# --------------------------------------------------
+# ==================================================
 
 if st.session_state.game_finished:
 
@@ -392,18 +476,21 @@ if st.session_state.game_finished:
     col1, col2, col3 = st.columns(3)
 
     with col1:
+
         st.metric(
             "🏆 점수",
             st.session_state.score
         )
 
     with col2:
+
         st.metric(
             "⚡ WPM",
             calculate_wpm()
         )
 
     with col3:
+
         st.metric(
             "🎯 정확도",
             f"{accuracy:.1f}%"
@@ -414,7 +501,8 @@ if st.session_state.game_finished:
     st.subheader("📊 결과")
 
     st.write(
-        f"🔥 최고 콤보: **{st.session_state.max_combo}**"
+        f"🔥 최고 콤보: "
+        f"**{st.session_state.max_combo}**"
     )
 
     st.write(
@@ -423,28 +511,50 @@ if st.session_state.game_finished:
     )
 
     st.write(
-        f"🏆 현재 최고 점수: "
+        f"🏆 최고 점수: "
         f"**{st.session_state.best_score}점**"
     )
 
+    # ----------------------------------------------
+    # 등급
+    # ----------------------------------------------
+
     if st.session_state.score >= 1000:
-        st.success("👑 타이핑 마스터!")
+
+        st.success(
+            "👑 타이핑 마스터!"
+        )
 
     elif st.session_state.score >= 500:
-        st.success("🔥 엄청 빠르네요!")
+
+        st.success(
+            "🔥 엄청 빠르네요!"
+        )
 
     elif st.session_state.score >= 200:
-        st.info("👍 좋은 기록입니다!")
+
+        st.info(
+            "👍 좋은 기록입니다!"
+        )
 
     else:
-        st.warning("💪 조금 더 연습해보세요!")
+
+        st.warning(
+            "💪 조금 더 연습해보세요!"
+        )
 
     st.divider()
+
+    # ----------------------------------------------
+    # 다시하기
+    # ----------------------------------------------
 
     if st.button(
         "🔄 다시 플레이",
         type="primary",
         use_container_width=True
     ):
+
         start_game(difficulty)
+
         st.rerun()
