@@ -1,573 +1,818 @@
 import streamlit as st
-import random
-import time
-
-# =========================================================
-# 페이지 설정
-# =========================================================
+import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="⌨️ Typing Master",
-    page_icon="⌨️",
+    page_title="Traffic Dodge",
+    page_icon="🚗",
     layout="centered"
 )
 
-# =========================================================
-# 문장
-# =========================================================
-
-TEXTS = {
-    "쉬움": [
-        "hello world",
-        "python is fun",
-        "have a nice day",
-        "i like coding",
-        "streamlit is easy",
-        "let us play a game",
-        "practice makes perfect",
-        "welcome to typing game",
-        "coding is interesting",
-        "keep going"
-    ],
-
-    "보통": [
-        "Python is a powerful programming language.",
-        "Streamlit makes it easy to build web applications.",
-        "Practice typing every day to become faster.",
-        "GitHub is useful for sharing and managing code.",
-        "Programming requires patience and problem solving.",
-        "The quick brown fox jumps over the lazy dog.",
-        "A good programmer never stops learning.",
-        "Small improvements can create big results."
-    ],
-
-    "어려움": [
-        "Artificial intelligence is changing the way we interact with computers.",
-        "Software developers need creativity, logic, patience, and problem solving skills.",
-        "Building a successful application requires testing, debugging, and continuous improvement.",
-        "GitHub provides powerful tools for version control and collaborative software development.",
-        "Learning programming may seem difficult at first, but consistent practice makes it easier.",
-        "Streamlit allows Python developers to quickly create interactive data applications."
-    ]
-}
-
-
-# =========================================================
-# 세션 상태
-# =========================================================
-
-if "started" not in st.session_state:
-    st.session_state.started = False
-
-if "finished" not in st.session_state:
-    st.session_state.finished = False
-
-if "target" not in st.session_state:
-    st.session_state.target = ""
-
-if "difficulty" not in st.session_state:
-    st.session_state.difficulty = "쉬움"
-
-if "game_time" not in st.session_state:
-    st.session_state.game_time = 30
-
-if "start_time" not in st.session_state:
-    st.session_state.start_time = 0
-
-if "score" not in st.session_state:
-    st.session_state.score = 0
-
-if "best_score" not in st.session_state:
-    st.session_state.best_score = 0
-
-if "correct_chars" not in st.session_state:
-    st.session_state.correct_chars = 0
-
-if "total_chars" not in st.session_state:
-    st.session_state.total_chars = 0
-
-if "sentences" not in st.session_state:
-    st.session_state.sentences = 0
-
-if "combo" not in st.session_state:
-    st.session_state.combo = 0
-
-if "max_combo" not in st.session_state:
-    st.session_state.max_combo = 0
-
-if "input_version" not in st.session_state:
-    st.session_state.input_version = 0
-
-
-# =========================================================
-# 게임 시작
-# =========================================================
-
-def start_game(difficulty, game_time):
-
-    st.session_state.started = True
-    st.session_state.finished = False
-
-    st.session_state.difficulty = difficulty
-    st.session_state.game_time = game_time
-
-    st.session_state.target = random.choice(
-        TEXTS[difficulty]
-    )
-
-    st.session_state.start_time = time.time()
-
-    st.session_state.score = 0
-    st.session_state.correct_chars = 0
-    st.session_state.total_chars = 0
-
-    st.session_state.sentences = 0
-
-    st.session_state.combo = 0
-    st.session_state.max_combo = 0
-
-    st.session_state.input_version += 1
-
-
-# =========================================================
-# 게임 종료
-# =========================================================
-
-def finish_game():
-
-    st.session_state.started = False
-    st.session_state.finished = True
-
-    if st.session_state.score > st.session_state.best_score:
-        st.session_state.best_score = st.session_state.score
-
-
-# =========================================================
-# 정확도
-# =========================================================
-
-def accuracy():
-
-    if st.session_state.total_chars == 0:
-        return 100.0
-
-    return (
-        st.session_state.correct_chars
-        / st.session_state.total_chars
-    ) * 100
-
-
-# =========================================================
-# WPM
-# =========================================================
-
-def wpm():
-
-    if st.session_state.start_time == 0:
-        return 0
-
-    elapsed = max(
-        time.time() - st.session_state.start_time,
-        1
-    )
-
-    minutes = elapsed / 60
-
-    words = st.session_state.correct_chars / 5
-
-    return round(words / minutes)
-
-
-# =========================================================
-# 타이틀
-# =========================================================
-
-st.title("⌨️ Typing Master")
-
-st.caption(
-    "문장을 빠르고 정확하게 입력하세요!"
-)
-
-
-# =========================================================
-# 시작 화면
-# =========================================================
-
-if not st.session_state.started:
-
-    st.subheader("🎮 게임 설정")
-
-    difficulty = st.selectbox(
-        "난이도",
-        ["쉬움", "보통", "어려움"]
-    )
-
-    game_time = st.slider(
-        "게임 시간",
-        10,
-        60,
-        30,
-        5
-    )
-
-    st.write(
-        f"현재 최고 점수: "
-        f"**{st.session_state.best_score}점**"
-    )
-
-    if st.button(
-        "🎮 게임 시작",
-        type="primary",
-        use_container_width=True
-    ):
-
-        start_game(
-            difficulty,
-            game_time
-        )
-
-        st.rerun()
-
+st.title("🚗 Traffic Dodge")
+st.caption("← → 방향키로 자동차를 움직여 장애물을 피하세요!")
 
 # =========================================================
 # 게임
 # =========================================================
 
-if st.session_state.started:
+game_html = r"""
+<!DOCTYPE html>
+<html>
+<head>
 
-    # -----------------------------------------------------
-    # 시간 계산
-    # -----------------------------------------------------
+<meta charset="UTF-8">
 
-    elapsed = (
-        time.time()
-        - st.session_state.start_time
-    )
+<style>
 
-    remaining = max(
-        0,
-        st.session_state.game_time
-        - int(elapsed)
-    )
+* {
+    box-sizing: border-box;
+}
 
-    # -----------------------------------------------------
-    # 시간 종료
-    # -----------------------------------------------------
+body {
+    margin: 0;
+    padding: 0;
 
-    if remaining <= 0:
+    background: #111827;
 
-        finish_game()
+    font-family: Arial, sans-serif;
 
-        st.rerun()
+    overflow: hidden;
+}
 
-    # -----------------------------------------------------
-    # 정보
-    # -----------------------------------------------------
+#gameWrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
 
-    c1, c2, c3, c4 = st.columns(4)
+#game {
+    position: relative;
 
-    with c1:
-        st.metric(
-            "⏱️ 남은 시간",
-            f"{remaining}초"
-        )
+    width: 400px;
+    height: 650px;
 
-    with c2:
-        st.metric(
-            "🎯 점수",
-            st.session_state.score
-        )
+    background:
+        linear-gradient(
+            to right,
+            #333 0%,
+            #333 20%,
+            #555 20%,
+            #555 80%,
+            #333 80%,
+            #333 100%
+        );
 
-    with c3:
-        st.metric(
-            "🔥 콤보",
-            st.session_state.combo
-        )
+    border: 5px solid white;
+    border-radius: 15px;
 
-    with c4:
-        st.metric(
-            "⚡ WPM",
-            wpm()
-        )
+    overflow: hidden;
 
-    st.divider()
+    box-shadow:
+        0 0 30px rgba(0,0,0,0.5);
+}
 
-    # -----------------------------------------------------
-    # 문제
-    # -----------------------------------------------------
+/* 도로 중앙선 */
 
-    st.subheader("⌨️ 다음 문장")
+.line {
+    position: absolute;
 
-    st.markdown(
-        f"""
-        <div style="
-            background:#1f2937;
-            color:white;
-            padding:25px;
-            border-radius:15px;
-            font-size:24px;
-            font-weight:bold;
-            text-align:center;
-            margin-bottom:20px;
-        ">
-            {st.session_state.target}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    width: 8px;
+    height: 70px;
 
-    # -----------------------------------------------------
-    # 입력창
-    #
-    # key가 바뀌면 입력창이 새로 만들어짐
-    # -----------------------------------------------------
+    background: white;
 
-    input_key = (
-        f"typing_{st.session_state.input_version}"
-    )
+    left: 50%;
 
-    typed = st.text_input(
-        "문장 입력",
-        key=input_key,
-        label_visibility="collapsed",
-        placeholder="여기에 입력하세요...",
-        autocomplete="off"
-    )
+    transform: translateX(-50%);
 
-    # -----------------------------------------------------
-    # 입력 처리
-    # -----------------------------------------------------
+    opacity: 0.7;
+}
 
-    if typed:
+/* 플레이어 */
 
-        target = st.session_state.target
+#player {
+    position: absolute;
 
-        # 정확하게 입력한 글자 계산
-        correct = 0
+    width: 50px;
+    height: 90px;
 
-        for i in range(
-            min(len(typed), len(target))
-        ):
+    bottom: 30px;
+    left: 175px;
 
-            if typed[i] == target[i]:
-                correct += 1
+    background: #2196f3;
 
-        st.session_state.correct_chars += correct
-        st.session_state.total_chars += len(typed)
+    border-radius: 12px;
 
-        # -------------------------------------------------
-        # 정확한 입력 중
-        # -------------------------------------------------
+    border: 3px solid white;
 
-        if target.startswith(typed):
+    box-shadow:
+        0 0 10px rgba(33,150,243,0.8);
 
-            st.success(
-                "✅ 정확합니다!"
+    z-index: 10;
+}
+
+/* 자동차 앞 유리 */
+
+#player::before {
+    content: "";
+
+    position: absolute;
+
+    width: 32px;
+    height: 25px;
+
+    left: 6px;
+    top: 8px;
+
+    background: #9ee7ff;
+
+    border-radius: 6px;
+}
+
+/* 자동차 불빛 */
+
+#player::after {
+    content: "";
+
+    position: absolute;
+
+    width: 32px;
+    height: 10px;
+
+    left: 6px;
+    bottom: 8px;
+
+    background: #ff3333;
+
+    border-radius: 5px;
+}
+
+/* 장애물 */
+
+.enemy {
+    position: absolute;
+
+    width: 50px;
+    height: 90px;
+
+    background: #ef4444;
+
+    border-radius: 12px;
+
+    border: 3px solid white;
+
+    z-index: 5;
+}
+
+.enemy::before {
+    content: "";
+
+    position: absolute;
+
+    width: 32px;
+    height: 25px;
+
+    left: 6px;
+    top: 8px;
+
+    background: #222;
+
+    border-radius: 6px;
+}
+
+.enemy::after {
+    content: "";
+
+    position: absolute;
+
+    width: 32px;
+    height: 10px;
+
+    left: 6px;
+    bottom: 8px;
+
+    background: #ffff55;
+
+    border-radius: 5px;
+}
+
+/* UI */
+
+#score {
+    position: absolute;
+
+    top: 15px;
+    left: 15px;
+
+    color: white;
+
+    font-size: 22px;
+    font-weight: bold;
+
+    z-index: 100;
+}
+
+#lives {
+    position: absolute;
+
+    top: 45px;
+    left: 15px;
+
+    color: white;
+
+    font-size: 18px;
+
+    z-index: 100;
+}
+
+#speed {
+    position: absolute;
+
+    top: 70px;
+    left: 15px;
+
+    color: #ddd;
+
+    font-size: 15px;
+
+    z-index: 100;
+}
+
+/* 시작 화면 */
+
+#startScreen,
+#gameOverScreen {
+    position: absolute;
+
+    inset: 0;
+
+    background: rgba(0,0,0,0.8);
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    color: white;
+
+    z-index: 200;
+}
+
+#gameOverScreen {
+    display: none;
+}
+
+h1 {
+    font-size: 38px;
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 15px 35px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #22c55e;
+
+    color: white;
+
+    font-size: 20px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+button:hover {
+    background: #16a34a;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="gameWrapper">
+
+<div id="game">
+
+    <div id="score">
+        점수: 0
+    </div>
+
+    <div id="lives">
+        ❤️❤️❤️
+    </div>
+
+    <div id="speed">
+        속도: 1
+    </div>
+
+    <!-- 도로 중앙선 -->
+
+    <div class="line" style="top: 0px;"></div>
+    <div class="line" style="top: 140px;"></div>
+    <div class="line" style="top: 280px;"></div>
+    <div class="line" style="top: 420px;"></div>
+    <div class="line" style="top: 560px;"></div>
+
+    <!-- 플레이어 -->
+
+    <div id="player"></div>
+
+
+    <!-- 시작 -->
+
+    <div id="startScreen">
+
+        <h1>🚗 Traffic Dodge</h1>
+
+        <p>
+            ← → 방향키로 자동차를 움직이세요
+        </p>
+
+        <p>
+            장애물에 부딪히면 목숨을 잃습니다.
+        </p>
+
+        <button onclick="startGame()">
+            게임 시작
+        </button>
+
+    </div>
+
+
+    <!-- 게임 오버 -->
+
+    <div id="gameOverScreen">
+
+        <h1>💥 GAME OVER</h1>
+
+        <p id="finalScore">
+            점수: 0
+        </p>
+
+        <button onclick="restartGame()">
+            다시 하기
+        </button>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<script>
+
+// =======================================================
+// 기본 변수
+// =======================================================
+
+const game =
+    document.getElementById("game");
+
+const player =
+    document.getElementById("player");
+
+const scoreText =
+    document.getElementById("score");
+
+const livesText =
+    document.getElementById("lives");
+
+const speedText =
+    document.getElementById("speed");
+
+const startScreen =
+    document.getElementById("startScreen");
+
+const gameOverScreen =
+    document.getElementById("gameOverScreen");
+
+const finalScore =
+    document.getElementById("finalScore");
+
+
+let playerX = 175;
+
+let enemies = [];
+
+let score = 0;
+
+let lives = 3;
+
+let speed = 3;
+
+let gameRunning = false;
+
+let keys = {};
+
+let spawnTimer = 0;
+
+let lastTime = 0;
+
+
+// =======================================================
+// 키보드
+// =======================================================
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        keys[event.key] = true;
+
+        if (
+            event.key === "ArrowLeft" ||
+            event.key === "ArrowRight"
+        ) {
+
+            event.preventDefault();
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "keyup",
+    function(event) {
+
+        keys[event.key] = false;
+
+    }
+);
+
+
+// =======================================================
+// 게임 시작
+// =======================================================
+
+function startGame() {
+
+    startScreen.style.display = "none";
+
+    gameOverScreen.style.display = "none";
+
+    playerX = 175;
+
+    score = 0;
+
+    lives = 3;
+
+    speed = 3;
+
+    enemies = [];
+
+    spawnTimer = 0;
+
+    player.style.left =
+        playerX + "px";
+
+    updateUI();
+
+    gameRunning = true;
+
+    lastTime = performance.now();
+
+    requestAnimationFrame(gameLoop);
+
+}
+
+
+// =======================================================
+// 다시 시작
+// =======================================================
+
+function restartGame() {
+
+    // 기존 장애물 삭제
+
+    enemies.forEach(
+        enemy => enemy.element.remove()
+    );
+
+    enemies = [];
+
+    startGame();
+
+}
+
+
+// =======================================================
+// 장애물 생성
+// =======================================================
+
+function createEnemy() {
+
+    const enemy =
+        document.createElement("div");
+
+    enemy.className = "enemy";
+
+
+    // 차선 선택
+
+    const lanes = [
+        80,
+        145,
+        210,
+        275
+    ];
+
+    const lane =
+        lanes[
+            Math.floor(
+                Math.random() * lanes.length
             )
+        ];
 
-        # -------------------------------------------------
-        # 오타
-        # -------------------------------------------------
 
-        else:
+    enemy.style.left =
+        lane + "px";
 
-            st.error(
-                "❌ 오타가 있습니다!"
+    enemy.style.top =
+        "-100px";
+
+
+    game.appendChild(enemy);
+
+
+    enemies.push({
+
+        element: enemy,
+
+        x: lane,
+
+        y: -100,
+
+        speed:
+            speed +
+            Math.random() * 2
+
+    });
+
+}
+
+
+// =======================================================
+// 충돌 검사
+// =======================================================
+
+function collision(a, b) {
+
+    const rectA =
+        a.getBoundingClientRect();
+
+    const rectB =
+        b.getBoundingClientRect();
+
+
+    return !(
+        rectA.right < rectB.left ||
+        rectA.left > rectB.right ||
+        rectA.bottom < rectB.top ||
+        rectA.top > rectB.bottom
+    );
+
+}
+
+
+// =======================================================
+// 목숨 감소
+// =======================================================
+
+function loseLife() {
+
+    lives--;
+
+    updateUI();
+
+
+    if (lives <= 0) {
+
+        endGame();
+
+    }
+
+}
+
+
+// =======================================================
+// UI
+// =======================================================
+
+function updateUI() {
+
+    scoreText.innerText =
+        "점수: " + score;
+
+    livesText.innerText =
+        "❤️".repeat(lives);
+
+    speedText.innerText =
+        "속도: " +
+        Math.floor(speed);
+
+}
+
+
+// =======================================================
+// 게임 종료
+// =======================================================
+
+function endGame() {
+
+    gameRunning = false;
+
+    finalScore.innerText =
+        "점수: " + score;
+
+    gameOverScreen.style.display =
+        "flex";
+
+}
+
+
+// =======================================================
+// 게임 루프
+// =======================================================
+
+function gameLoop(currentTime) {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    const delta =
+        currentTime - lastTime;
+
+    lastTime = currentTime;
+
+
+    // ===================================================
+    // 플레이어 이동
+    // ===================================================
+
+    if (keys["ArrowLeft"]) {
+
+        playerX -= 7;
+
+    }
+
+    if (keys["ArrowRight"]) {
+
+        playerX += 7;
+
+    }
+
+
+    // 도로 밖으로 못 나가게
+
+    if (playerX < 80) {
+
+        playerX = 80;
+
+    }
+
+    if (playerX > 270) {
+
+        playerX = 270;
+
+    }
+
+
+    player.style.left =
+        playerX + "px";
+
+
+    // ===================================================
+    // 장애물 생성
+    // ===================================================
+
+    spawnTimer += delta;
+
+
+    const spawnInterval =
+        Math.max(
+            400,
+            1000 - score * 3
+        );
+
+
+    if (spawnTimer > spawnInterval) {
+
+        createEnemy();
+
+        spawnTimer = 0;
+
+    }
+
+
+    // ===================================================
+    // 장애물 이동
+    // ===================================================
+
+    for (
+        let i = enemies.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const enemy =
+            enemies[i];
+
+
+        enemy.y +=
+            enemy.speed;
+
+
+        enemy.element.style.top =
+            enemy.y + "px";
+
+
+        // =================================================
+        // 충돌
+        // =================================================
+
+        if (
+            collision(
+                player,
+                enemy.element
             )
+        ) {
 
-            st.session_state.combo = 0
+            enemy.element.remove();
 
-        # -------------------------------------------------
-        # 정답
-        # -------------------------------------------------
+            enemies.splice(i, 1);
 
-        if typed == target:
+            loseLife();
 
-            # 점수
-            st.session_state.score += (
-                len(target) * 10
-            )
+            continue;
 
-            # 보너스
-            st.session_state.score += 100
-
-            # 콤보
-            st.session_state.combo += 1
-
-            st.session_state.max_combo = max(
-                st.session_state.max_combo,
-                st.session_state.combo
-            )
-
-            # 완료 문장
-            st.session_state.sentences += 1
-
-            # -------------------------------------------------
-            # ⭐ 핵심
-            #
-            # 기존 문장을 새로운 문장으로 교체
-            # -------------------------------------------------
-
-            st.session_state.target = random.choice(
-                TEXTS[
-                    st.session_state.difficulty
-                ]
-            )
-
-            # -------------------------------------------------
-            # ⭐ 핵심
-            #
-            # 입력창을 완전히 새로 생성
-            # -------------------------------------------------
-
-            st.session_state.input_version += 1
-
-            # -------------------------------------------------
-            # 화면 즉시 갱신
-            # -------------------------------------------------
-
-            st.rerun()
-
-    # -----------------------------------------------------
-    # 정확도
-    # -----------------------------------------------------
-
-    current_accuracy = accuracy()
-
-    st.progress(
-        min(
-            current_accuracy / 100,
-            1.0
-        )
-    )
-
-    st.caption(
-        f"🎯 정확도: "
-        f"**{current_accuracy:.1f}%**"
-    )
-
-    st.caption(
-        f"📝 완료한 문장: "
-        f"**{st.session_state.sentences}개**"
-    )
-
-    # -----------------------------------------------------
-    # 종료 버튼
-    # -----------------------------------------------------
-
-    if st.button(
-        "🛑 게임 종료",
-        use_container_width=True
-    ):
-
-        finish_game()
-
-        st.rerun()
-
-    # -----------------------------------------------------
-    # 타이머 갱신
-    # -----------------------------------------------------
-
-    time.sleep(1)
-
-    st.rerun()
+        }
 
 
-# =========================================================
-# 결과 화면
-# =========================================================
+        // =================================================
+        // 화면 아래로 지나감
+        // =================================================
 
-if st.session_state.finished:
+        if (enemy.y > 700) {
 
-    st.balloons()
+            enemy.element.remove();
 
-    st.header("🎉 게임 종료!")
+            enemies.splice(i, 1);
 
-    current_accuracy = accuracy()
+            score++;
 
-    c1, c2, c3 = st.columns(3)
+            // 점수가 올라갈수록 속도 증가
 
-    with c1:
+            speed =
+                3 +
+                Math.floor(score / 10) * 0.5;
 
-        st.metric(
-            "🏆 점수",
-            st.session_state.score
-        )
+            updateUI();
 
-    with c2:
+        }
 
-        st.metric(
-            "⚡ WPM",
-            wpm()
-        )
+    }
 
-    with c3:
 
-        st.metric(
-            "🎯 정확도",
-            f"{current_accuracy:.1f}%"
-        )
+    // ===================================================
+    // 다음 프레임
+    // ===================================================
 
-    st.divider()
+    requestAnimationFrame(gameLoop);
 
-    st.write(
-        f"📝 완료한 문장: "
-        f"**{st.session_state.sentences}개**"
-    )
+}
 
-    st.write(
-        f"🔥 최고 콤보: "
-        f"**{st.session_state.max_combo}**"
-    )
 
-    st.write(
-        f"🏆 최고 점수: "
-        f"**{st.session_state.best_score}점**"
-    )
+// =======================================================
+// 자동 포커스
+// =======================================================
 
-    # -----------------------------------------------------
-    # 등급
-    # -----------------------------------------------------
+window.onload = function() {
 
-    if st.session_state.score >= 1000:
+    document.body.focus();
 
-        st.success(
-            "👑 타이핑 마스터!"
-        )
+};
 
-    elif st.session_state.score >= 500:
+</script>
 
-        st.success(
-            "🔥 엄청난 기록입니다!"
-        )
+</body>
+</html>
+"""
 
-    elif st.session_state.score >= 200:
-
-        st.info(
-            "👍 좋은 기록입니다!"
-        )
-
-    else:
-
-        st.warning(
-            "💪 조금 더 연습해보세요!"
-        )
-
-    st.divider()
-
-    # -----------------------------------------------------
-    # 다시 시작
-    # -----------------------------------------------------
-
-    if st.button(
-        "🔄 다시 플레이",
-        type="primary",
-        use_container_width=True
-    ):
-
-        start_game(
-            st.session_state.difficulty,
-            st.session_state.game_time
-        )
-
-        st.rerun()
+components.html(
+    game_html,
+    height=700,
+    scrolling=False
+)
